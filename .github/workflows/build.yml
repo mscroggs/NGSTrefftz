@@ -1,0 +1,247 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ['main**']
+  release:
+    types: [created]
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    steps:     
+      - name: install pkgs
+        run: |
+             sudo apt-get update && DEBIAN_FRONTEND="noninteractive" sudo apt-get -y install vim python3 python3-pip python3-distutils python3-tk libpython3-dev libxmu-dev tk-dev tcl-dev cmake git g++ libglu1-mesa-dev libblas-dev liblapack-dev
+             sudo apt-get install -y software-properties-common
+             sudo add-apt-repository universe
+             sudo add-apt-repository ppa:ngsolve/nightly -y
+             sudo apt-get install ngsolve -y
+      - name: set path
+        run: |
+             echo "PYTHONPATH=/usr/lib/python3/dist-packages/" >> $GITHUB_ENV
+             echo "NETGENDIR=/usr/bin/" >> $GITHUB_ENV
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'True'
+          path: 'NGSTrefftz'
+      - name: cmake NGSTrefftz
+        run: cmake -B $GITHUB_WORKSPACE/NGSTrefftz/make -S $GITHUB_WORKSPACE/NGSTrefftz/src/
+      - name: compile NGSTrefftz
+        run: make -C $GITHUB_WORKSPACE/NGSTrefftz/make
+      - name: test NGSTrefftz
+        run: make -C $GITHUB_WORKSPACE/NGSTrefftz/make test
+      - name: install NGSTrefftz
+        run: sudo make -C $GITHUB_WORKSPACE/NGSTrefftz/make install  
+      #- name: Debugging with tmate
+        #if: ${{ failure() }}
+        #uses: mxschmitt/action-tmate@v3
+
+  macos:
+    runs-on: macos-latest
+    steps:     
+      - name: install pkgs
+        run: |
+             brew install openblas
+             brew install lapack
+             echo "LDFLAGS=-L/usr/local/opt/openblas/lib -L/usr/local/opt/lapack/lib" >> $GITHUB_ENV
+             echo "CPPFLAGS=-I/usr/local/opt/openblas/include -I/usr/local/opt/lapack/include" >> $GITHUB_ENV
+             echo "PKG_CONFIG_PATH=/usr/local/opt/openblas/lib/pkgconfig:/usr/local/opt/lapack/lib/pkgconfig" >> $GITHUB_ENV
+      - name: install ngsolve
+        run: |
+             wget https://www.asc.tuwien.ac.at/~mhochsteger/ngsolve/macos/NGSolve_nightly.dmg
+             hdiutil attach NGSolve_nightly.dmg
+             cp -R /Volumes/NGSolve/* /Applications
+      - name: set path
+        run: |
+             echo "PYTHONPATH=$PYTHONPATH:/Applications/Netgen.app/Contents/Resources/lib/python3.8/site-packages:." >> $GITHUB_ENV
+             echo "NETGENDIR=/Applications/Netgen.app/Contents/MacOS" >> $GITHUB_ENV
+             echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$NETGENDIR" >> $GITHUB_ENV
+             echo "DYLD_FRAMEWORK_PATH=$DYLD_FRAMEWORK_PATH:$NETGENDIR/../Frameworks" >> $GITHUB_ENV
+             echo "$NETGENDIR" >> $GITHUB_PATH
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'True'
+          path: 'NGSTrefftz'
+      - name: cmake NGSTrefftz
+        run: cmake -B $GITHUB_WORKSPACE/NGSTrefftz/make -S $GITHUB_WORKSPACE/NGSTrefftz/src/
+      - name: compile NGSTrefftz
+        run: make -C $GITHUB_WORKSPACE/NGSTrefftz/make
+
+  pypi-test:
+    needs: [ubuntu,macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: install pkgs
+        run: |
+             sudo apt-get update && DEBIAN_FRONTEND="noninteractive" sudo apt-get -y install vim python3 python3-pip python3-distutils python3-tk libpython3-dev libxmu-dev tk-dev tcl-dev cmake git g++ libglu1-mesa-dev libblas-dev liblapack-dev
+             sudo apt-get install -y software-properties-common
+             sudo add-apt-repository universe
+             sudo add-apt-repository ppa:ngsolve/nightly -y
+             sudo apt-get install ngsolve -y
+      - name: set path
+        run: |
+             echo "PYTHONPATH=/usr/lib/python3/dist-packages/" >> $GITHUB_ENV
+             echo "NETGENDIR=/usr/bin/" >> $GITHUB_ENV
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'True'
+      - name: Update pip and Install setuptools
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install setuptools
+      - name: Package ngstrefftz sources for PyPI
+        run: python3 setup.py sdist
+      - name: pip install ngstrefftz
+        run: pip install dist/*
+
+  pypi-publish:
+    needs: [pypi-test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'created' #startsWith(github.ref, 'refs/tags/v') # && github.event_name == 'push' 
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'True'
+      - name: Update pip and Install setuptools
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install setuptools
+      - name: Package ngstrefftz sources for PyPI
+        run: python3 setup.py sdist
+      - name: Publish source distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          skip_existing: true
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  docker:
+    needs: [ubuntu,macos]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'created'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            paulstdocker/ngstrefftz
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=semver,pattern={{version}}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ".github/workflows/Dockerfile"
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          #labels: ${{ steps.meta.outputs.labels }}
+
+  docs:
+    needs: [ubuntu,macos]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'created'
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
+          submodules: 'True'
+          path: 'NGSTrefftz'
+      - name: install pkgs
+        run: |
+             sudo apt-get update && DEBIAN_FRONTEND="noninteractive" sudo apt-get -y install vim libxmu-dev tk-dev tcl-dev cmake git g++ libglu1-mesa-dev libblas-dev liblapack-dev python3 python3-pip python3-distutils python3-tk libpython3-dev 
+             sudo apt-get install -y software-properties-common
+             sudo add-apt-repository universe
+             sudo add-apt-repository ppa:ngsolve/nightly -y
+             sudo apt-get install ngsolve -y
+             sudo apt-get install npm nodejs pandoc -y
+      - name: pip pkgs
+        run: python3 -m pip list
+      - name: set path
+        run: |
+             echo "NETGENDIR=/usr/bin/" >> $GITHUB_ENV
+      - run: pip install --user -r $GITHUB_WORKSPACE/NGSTrefftz/docs/requirements.txt
+      - name: webgui
+        run: |
+             jupyter nbextension install --user --py widgetsnbextension
+             jupyter nbextension enable --user --py widgetsnbextension
+             jupyter nbextension install --user --py webgui_jupyter_widgets
+             jupyter nbextension enable --user --py webgui_jupyter_widgets            
+      - run: python3 -c "import sys; print(sys.path)"
+      - name: cmake NGSTrefftz
+        run: |
+             cmake -B $GITHUB_WORKSPACE/NGSTrefftz/make -S $GITHUB_WORKSPACE/NGSTrefftz/src/
+             make -C $GITHUB_WORKSPACE/NGSTrefftz/make
+             sudo make -C $GITHUB_WORKSPACE/NGSTrefftz/make install  
+             python3 -c "import sys; print(sys.path)"
+             python3 -c "import ngstrefftz"
+             ln -s /usr/lib/python3/dist-packages/ngsolve /opt/hostedtoolcache/Python/3.10.2/x64/lib/python3.10/site-packages/
+             ln -s /usr/lib/python3/dist-packages/ngstrefftz /opt/hostedtoolcache/Python/3.10.2/x64/lib/python3.10/site-packages/
+             ln -s /usr/lib/python3/dist-packages/ngstents /opt/hostedtoolcache/Python/3.10.2/x64/lib/python3.10/site-packages/
+      - name: jupyter stuff
+        run: |
+             pip install jupyter_contrib_nbextensions 
+             #pip install jupyter_nbextensions_configurator 
+             jupyter contrib nbextension install --user
+             jupyter nbextension install --user --py widgetsnbextension
+             jupyter nbextension enable --user --py widgetsnbextension
+      - name: build tentswebgui
+        run: |
+             cd $GITHUB_WORKSPACE/NGSTrefftz/external_dependencies/ngstents/tentswebgui/ && bash build.sh
+      - name: install tentswebgui
+        run: |
+             cd $GITHUB_WORKSPACE/NGSTrefftz/external_dependencies/ngstents/tentswebgui/ && pip install --user .
+      - name: jupyter tentswebgui
+        run: |
+             jupyter nbextension install --user --py tentswebgui
+             jupyter nbextension enable --user --py tentswebgui
+      - name: Build and Commit
+        uses: sphinx-notes/pages@v2
+        with:
+          repository_path: 'NGSTrefftz'
+          #requirements_path: ./docs/requirements.txt
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          directory: 'NGSTrefftz'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+      - name: Debugging 
+        if: ${{ failure() }}
+        run: cat /tmp/sphinx*
+
+  paper:
+    runs-on: ubuntu-latest
+    name: Paper Draft
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build draft PDF
+        uses: openjournals/openjournals-draft-action@master
+        with:
+          journal: joss
+          paper-path: docs/paper/paper.md
+      - name: Upload
+        uses: actions/upload-artifact@v1
+        with:
+          name: joss_paper
+          path: docs/paper/paper.pdf
