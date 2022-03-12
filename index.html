@@ -6,13 +6,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
-    <title>NGSTrefftz &#8212; NGSTrefftz v0.0.4 documentation</title>
+    <title>NGSTrefftz &#8212; NGSTrefftz 0.0.6 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
+    <script src="_static/thebelab-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -47,6 +52,7 @@
 <a class="reference external image-reference" href="https://pypi.org/project/ngstrefftz/"><img alt="PyPI" src="https://img.shields.io/pypi/v/ngstrefftz?color=blue&amp;logo=pypi" /></a>
 <a class="reference external image-reference" href="https://github.com/PaulSt/NGSTrefftz/actions"><img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/PaulSt/NGSTrefftz/build?logo=github" /></a>
 <a class="reference external image-reference" href="https://joss.theoj.org/papers/c2f4e85b118c22b81aa27d7799265409"><img alt="status" src="https://joss.theoj.org/papers/c2f4e85b118c22b81aa27d7799265409/status.svg" /></a>
+<a class="reference external image-reference" href="https://paulst.github.io/NGSTrefftz/"><img alt="docs" src="https://img.shields.io/badge/docs-NGSTrefftz-blue?logo=readthedocs" /></a>
 <p>NGSTrefftz provides a framework to implement Trefftz finite element spaces for <a class="reference external" href="https://www.ngsolve.com">NGSolve</a>, with several Trefftz spaces already implemented. Additionally, Trefftz-DG on tent-pitched meshes for the acoustic wave equation is implemented using meshes provided by <a class="reference external" href="https://github.com/jayggg/ngstents">ngstents</a>. Furthermore, the package includes an implementation of the embedded Trefftz method.</p>
 <section id="try-it-out">
 <h2>Try it out!<a class="headerlink" href="#try-it-out" title="Permalink to this headline">¶</a></h2>
@@ -111,6 +117,126 @@ cmake ../src <span class="o">&amp;&amp;</span> make install
 </ul>
 <a class="reference external image-reference" href=".github/wave.gif"><img alt="" src=".github/wave.gif" /></a>
 </section>
+</section>
+</section>
+<section id="introduction-to-trefftz-dg">
+<h1>Introduction to Trefftz-DG<a class="headerlink" href="#introduction-to-trefftz-dg" title="Permalink to this headline">¶</a></h1>
+<p>We give a short introduction to Trefftz-DG methods for the model problem of the Laplace equation.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\newcommand{\Th}{{\mathcal{T}_h}}
+\newcommand{\Fh}{\mathcal{F}_h}
+\newcommand{\dom}{\Omega}
+\newcommand{\jump}[1]{[\![ #1 ]\!]}
+\newcommand{\tjump}[1]{[\![{#1} ]\!]_\tau}
+\newcommand{\avg}[1]{\{\!\!\{#1\}\!\!\}}
+\newcommand{\nx}{n_\mathbf{x}}
+\begin{align*} \begin{split}
+    \begin{cases}
+    -\Delta u = 0 &amp;\text{ in } \Omega, \\
+    u=g &amp;\text{ on } \partial \Omega,
+    \end{cases}
+\end{split} \end{align*}\end{split}\]</div>
+<section id="harmonic-polynomials">
+<h2>Harmonic polynomials<a class="headerlink" href="#harmonic-polynomials" title="Permalink to this headline">¶</a></h2>
+<p>For an element <span class="math notranslate nohighlight">\(K\)</span> in out mesh <span class="math notranslate nohighlight">\(\Th\)</span> we define the local Trefftz space as</p>
+<div class="math notranslate nohighlight">
+\[\begin{align*} \begin{split}
+\mathbb{T}^p(K):=\big\{
+f\in\mathbb{P}^p(K) \mid \Delta f = 0
+\big\},
+\qquad p\in \mathbb{N}.
+\end{split} \end{align*}\]</div>
+<p>For the Laplace problem the Trefftz space is given by harmonic polynomials, e.g. for polynomial of order 3 in two dimensions the space is given by</p>
+<div class="math notranslate nohighlight">
+\[\begin{align*} \begin{split}
+\mathbb{T}^p(K):=\text{span}\{1,x,y,xy,x^2-y^2,x^3-3y^2x,y^3-3x^2y\}
+\end{split} \end{align*}\]</div>
+<p>The local degrees of freedom are reduced from the dimension of the full polynomials, given by <span class="math notranslate nohighlight">\(\big(\begin{smallmatrix}p+n\\p\end{smallmatrix}\big)\)</span>, to</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align*} \begin{split}
+\dim\mathbb{T}^p(K)=\begin{cases} 2 &amp; n=1\\ 2p+1 &amp; n=2\\ (p+1)^2 &amp; n=3\end{cases}.
+\end{split} \end{align*}\end{split}\]</div>
+</section>
+<section id="numerical-treatment">
+<h2>Numerical treatment<a class="headerlink" href="#numerical-treatment" title="Permalink to this headline">¶</a></h2>
+<p>The IP-DG method for the Laplace equation is given by</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}\label{eq:dglap}
+    \begin{split}
+    a_h(u,v) &amp;= \int_\dom \nabla u\nabla v\ dV
+    -\int_{\Fh^\text{int}}\left(\avg{\nabla u}\jump{v}+\avg{\nabla v}\jump{u}
+    - \frac{\alpha p^2}{h}\jump{u}\jump{v} \right) dS \\
+           &amp;\qquad -\int_{\Fh^\text{bnd}}\left(\nx\cdot\nabla u v+\nx\cdot\nabla v u-\frac{\alpha p^2}{h} u v \right) dS\\
+    \ell(v) &amp;= \int_{\Fh^\text{bnd}}\left(\frac{\alpha p^2}{h} gv -\nx\cdot\nabla vg\right) dS.
+    \end{split}
+\end{align}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(h\)</span> is the mesh size, <span class="math notranslate nohighlight">\(p\)</span> is the polynomial degree and <span class="math notranslate nohighlight">\(\alpha&gt;0\)</span>.</p>
+<div class="jupyter_cell docutils container">
+<div class="cell_output docutils container">
+</div>
+</div>
+<p>For a given mesh we construct the Trefftz finite element space as</p>
+<div class="math notranslate nohighlight">
+\[\begin{align*} \begin{split}
+\mathbb{T}^p(\Th):=\prod_{K\in\Th} \mathbb{T}^p(\Th)
+\end{split} \end{align*}\]</div>
+<p>in NGSolve this is done by</p>
+<div class="jupyter_cell jupyter_container docutils container">
+<div class="cell_input code_cell docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mesh</span> <span class="o">=</span> <span class="n">Mesh</span><span class="p">(</span><span class="n">unit_square</span><span class="o">.</span><span class="n">GenerateMesh</span><span class="p">(</span><span class="n">maxh</span><span class="o">=</span><span class="mf">.5</span><span class="p">))</span>
+<span class="n">trefftzfespace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="n">p</span><span class="p">,</span><span class="n">eq</span><span class="o">=</span><span class="s2">&quot;laplace&quot;</span><span class="p">,</span><span class="n">dgjumps</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+</div>
+</div>
+<p>We will compare the approximation properties of the Trefftz space with the space of (all) piecewise polynomials. In NGSolve</p>
+<div class="jupyter_cell jupyter_container docutils container">
+<div class="cell_input code_cell docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">L2</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="n">p</span><span class="p">,</span><span class="n">dgjumps</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+</div>
+</div>
+<div class="jupyter_cell docutils container">
+<div class="cell_output docutils container">
+</div>
+</div>
+<p>The numerical results for the Trefftz space are plotted in solid lines, while the results for the full polynomial space are the dashed lines.
+We show the convergence rates with respect to polynomial degree <span class="math notranslate nohighlight">\(p\)</span> and mesh size <span class="math notranslate nohighlight">\(h\)</span>.
+In the Figure on the left we show the error compared to the global number of degrees of freedom for varying <span class="math notranslate nohighlight">\(p\)</span>.
+In the Figure on the right we show the error with respect to <span class="math notranslate nohighlight">\(h\)</span>.</p>
+<div class="jupyter_cell docutils container">
+<div class="cell_output docutils container">
+<img alt="_images/index_4_0.png" src="_images/index_4_0.png" />
+</div>
+</div>
+<p>The Trefftz space shows optimal rate of convergence, using fewer degrees of freedom.
+As an exact solution we used</p>
+<div class="math notranslate nohighlight">
+\[u(x,y) = \exp(x)\sin(y), \quad \text{in} \quad [0,1]^2\]</div>
+<div class="jupyter_cell jupyter_container docutils container">
+<div class="cell_input code_cell docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mesh</span> <span class="o">=</span> <span class="n">Mesh</span><span class="p">(</span><span class="n">unit_square</span><span class="o">.</span><span class="n">GenerateMesh</span><span class="p">(</span><span class="n">maxh</span><span class="o">=</span><span class="mf">0.3</span><span class="p">))</span>
+<span class="n">fes</span> <span class="o">=</span> <span class="n">trefftzfespace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="n">eq</span><span class="o">=</span><span class="s2">&quot;laplace&quot;</span><span class="p">,</span><span class="n">dgjumps</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">f</span><span class="p">)</span> <span class="o">=</span> <span class="n">lap_problem</span><span class="p">(</span><span class="n">fes</span><span class="p">)</span>
+<span class="n">gfu</span> <span class="o">=</span> <span class="n">GridFunction</span><span class="p">(</span><span class="n">fes</span><span class="p">)</span>
+<span class="n">gfu</span><span class="o">.</span><span class="n">vec</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">Inverse</span><span class="p">(</span><span class="n">inverse</span><span class="o">=</span><span class="s1">&#39;sparsecholesky&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="n">f</span><span class="o">.</span><span class="n">vec</span>
+<span class="n">Draw</span><span class="p">(</span><span class="n">gfu</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<script type="application/vnd.jupyter.widget-view+json">
+{"version_major": 2, "version_minor": 0, "model_id": "b253029400a24beaa93968bb7aa20549"}
+</script><div class="output text_plain highlight-none notranslate"><div class="highlight"><pre><span></span>BaseWebGuiScene
+</pre></div>
+</div>
+</div>
+</div>
 </section>
 </section>
 <section id="documentation">
@@ -265,17 +391,74 @@ Then we can solve the reduced problem: Find <span class="math notranslate nohigh
 </dd></dl>
 
 </section>
+<section id="how-to-get-started">
+<h2>How to get started?<a class="headerlink" href="#how-to-get-started" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>If you want to see more implementations using Trefftz-DG methods or use an already implemented Trefftz space, have a look at the <a class="reference external" href="notebooks/index.html">notebooks</a>.</p></li>
+<li><p>If you are looking to implement a (polynomial) Trefftz space, a good starting point is to have a look at <a class="reference external" href="https://github.com/PaulSt/NGSTrefftz/blob/main/src/trefftzfespace.hpp">trefftzspace.hpp</a>. For Trefftz spaces based on plane waves check out <a class="reference external" href="https://github.com/PaulSt/NGSTrefftz/blob/main/src/planewavefe.hpp">planewavefe.hpp</a>.</p></li>
+<li><p>Before undertaking the implementation of a new Trefftz space in C++, or especially if your PDE does not have a easy-to-construct Trefftz space, consider checking out the <a class="reference external" href="notebooks/embTrefftz.html">embedded Trefftz method</a>.</p></li>
+</ul>
+</section>
+</section>
+<section id="contributing-to-ngstrefftz">
+<h1>Contributing to <code class="docutils literal notranslate"><span class="pre">NGSTrefftz</span></code><a class="headerlink" href="#contributing-to-ngstrefftz" title="Permalink to this headline">¶</a></h1>
+<dl class="field-list simple">
+<dt class="field-odd">+1::tada</dt>
+<dd class="field-odd"><p>Thanks for taking the time to contribute! :tada::+1:</p>
+</dd>
+</dl>
+<p>To get an overview of the project, check out the <a class="reference external" href="README.md">README</a>.</p>
+<p>The <a class="reference external" href="https://github.com/paulst/ngstrefftz/issues">issue tracker</a>
+is the preferred channel for <a class="reference external" href="#bugs">bug reports</a>, <a class="reference external" href="#features">features
+requests</a> and <a class="reference external" href="#pull-requests">submitting pull requests</a>.</p>
+<p>For personal support requests you can reach me at <a class="reference external" href="mailto:p&#46;stocker&#37;&#52;&#48;math&#46;uni-goettingen&#46;de">p<span>&#46;</span>stocker<span>&#64;</span>math<span>&#46;</span>uni-goettingen<span>&#46;</span>de</a>.</p>
+<section id="id3">
+<h2>Bug reports<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>A bug is a <em>demonstrable problem</em> that is caused by the code in the repository.
+Bug reports are extremely helpful - thank you!</p>
+<p>Guidelines for bug reports:</p>
+<ol class="arabic simple">
+<li><p><strong>Check if the issue has been fixed</strong>: try to reproduce it using the latest <code class="docutils literal notranslate"><span class="pre">main</span></code> or development branch in the repository.</p></li>
+<li><p><strong>Use the GitHub issue search</strong>: check if the issue has already been reported.</p></li>
+<li><p><strong>Isolate the problem</strong>: Create a minimal example showing the problem.</p></li>
+<li><p><strong>Open an issue</strong>: Using the <a class="reference external" href="https://github.com/paulst/ngstrefftz/issues">issue tracker</a>, describe the expected outcome and report the OS, the compiler, and NGSolve version you are using.</p></li>
+</ol>
+</section>
+<section id="pull-requests">
+<h2>Pull requests<a class="headerlink" href="#pull-requests" title="Permalink to this headline">¶</a></h2>
+<p>Pull requests - patches, improvements, new features - are a fantastic
+help. They should remain focused in scope and avoid containing unrelated commits.
+<strong>Please ask first</strong> before embarking on any significant pull request.</p>
+<p>Tips on opening a pull request:</p>
+<ol class="arabic">
+<li><p><a class="reference external" href="http://help.github.com/fork-a-repo/">Fork</a> the project.</p></li>
+<li><p>Create a branch and implement your feature.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git checkout -b &lt;your-feature-name&gt;
+</pre></div>
+</div>
+</li>
+<li><p>Once the implementation is done, use Git’s
+<a class="reference external" href="https://help.github.com/articles/interactive-rebase">interactive rebase</a>
+feature to tidy up your commits.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git rebase --interactive --fork-point main &lt;your-feature-name&gt;
+</pre></div>
+</div>
+</li>
+<li><p>Push your topic branch up to your fork and <a class="reference external" href="https://help.github.com/articles/using-pull-requests/">open a Pull Request</a>.</p></li>
+</ol>
+<p><strong>IMPORTANT</strong>: By submitting a patch, you agree to allow the project owners to license your work under the terms of the <em>LGPL License</em>.</p>
+</section>
 </section>
 <section id="ngstrefftz-notebooks">
 <h1>NGSTrefftz Notebooks<a class="headerlink" href="#ngstrefftz-notebooks" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="notebooks/index.html">NGSTrefftz Notebooks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebooks/laplace.html">Laplace problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/laplace.html">Laplace</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebooks/helmholtz.html">Helmholtz</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebooks/twave.html">Wave equation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebooks/qtwave.html">Quasi-Trefftz DG</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebooks/twavetents.html">Tent pitching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/twavetents.html">Trefftz + tent pitching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebooks/embTrefftz.html">Embedded Trefftz method</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebooks/embTrefftz-poi.html">embedded Trefftz-DG for an Poisson equation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebooks/embTrefftz-wave.html">embedded Trefftz-DG for the wave equation</a></li>
@@ -284,6 +467,12 @@ Then we can solve the reduced problem: Find <span class="math notranslate nohigh
 </ul>
 </div>
 </section>
+
+
+<script type="application/vnd.jupyter.widget-state+json">
+{"state": {"8f3a0a0de6a346a7b268e74285078dab": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "1.2.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "1.2.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "1.2.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "overflow_x": null, "overflow_y": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "b253029400a24beaa93968bb7aa20549": {"model_name": "WebguiModel", "model_module": "webgui_jupyter_widgets", "model_module_version": "0.2.8", "state": {"_dom_classes": [], "_model_module": "webgui_jupyter_widgets", "_model_module_version": "0.2.8", "_model_name": "WebguiModel", "_view_count": null, "_view_module": "webgui_jupyter_widgets", "_view_module_version": "0.2.8", "_view_name": "WebguiView", "layout": "IPY_MODEL_8f3a0a0de6a346a7b268e74285078dab", "value": {"ngsolve_version": "6.2.2201-15-gf56194365", "mesh_dim": 2, "order2d": 2, "order3d": 2, "draw_vol": false, "draw_surf": true, "objects": [], "deformation": false, "funcdim": 1, "show_wireframe": true, "show_mesh": true, "Bezier_points": [null, null, null], "edges": [null, null, null], "Bezier_trig_points": [null, null, null, null, null, null], "mesh_center": [0.5, 0.5, 1.1125369292536007e-308], "mesh_radius": 0.7071067811865476, "funcmin": -2.3774687203910333e-08, "funcmax": 2.2873553433731773, "autoscale": true}}, "buffers": [{"data": "AAAAAKuqqj4AAAAAEYanPgAAAACrqqo+AAAAABGGpz6rqqo+AAAAAAAAAAB6eCwzdB39PkRfdD4AAAAAQGzGPnQd/T5EX3Q+AAAAAEBsxj6rqio/AAAAAAAAAADhqHIyq6oqPwAAAAAAAAAAL8IDMquqKj8AAAAAAAAAAC/CAzJyIj4/JuyVPgAAAACQTBs/dB39PkRfdD4AAAAAP2zGPnQd/T5EX3Q+AAAAAD9sxj5yIj4/JuyVPgAAAACQTBs/ciI+PybslT4AAAAAkEwbP3IiPj8m7JU+AAAAAJBMGz8AAIA/q6qqPgAAAAA0sGM/iQ9CP+lBKT8AAAAAvbunP4kPQj/pQSk/AAAAAL27pz8AAIA/q6oqPwAAAADYJ9c/ciI+PybslT4AAAAAkEwbP3IiPj8m7JU+AAAAAJBMGz+JD0I/6UEpPwAAAAC9u6c/iQ9CP+lBKT8AAAAAvLunP4kPQj/pQSk/AAAAALy7pz+rqio/AACAPwAAAAB/ydE/YWMCPxznSD8AAAAAuYeWP2FjAj8c50g/AAAAALmHlj+rqqo+AACAPwAAAACsUZY/q6qqPgAAgD8AAAAArFGWP6uqqj4AAIA/AAAAAKxRlj8ogYU+Vhs6PwAAAADf01w/YWMCPxznSD8AAAAAuYeWP2FjAj8c50g/AAAAALmHlj8ogYU+Vhs6PwAAAADf01w/KIGFPlYbOj8AAAAA39NcPyiBhT5WGzo/AAAAAN/TXD8AAAAAq6oqPwAAAAB8TR4/zFWBPs+W1D4AAAAAbfEEP8xVgT7PltQ+AAAAAG3xBD90Hf0+RF90PgAAAABAbMY+zFWBPs+W1D4AAAAAbvEEP8xVgT7PltQ+AAAAAG7xBD8AAAAAq6qqPgAAAAAQhqc+KIGFPlYbOj8AAAAA39NcPyiBhT5WGzo/AAAAAN/TXD/MVYE+z5bUPgAAAABu8QQ/AACAP6uqKj8AAAAA1yfXPwAAgD+rqio/AAAAANcn1z+JD0I/6UEpPwAAAAC9u6c/iQ9CP+lBKT8AAAAAvLunP4kPQj/pQSk/AAAAALy7pz9hYwI/HOdIPwAAAAC5h5Y/Dc8BP16sBD8AAAAABZBSPw3PAT9erAQ/AAAAAAWQUj9hYwI/HOdIPwAAAAC5h5Y/Dc8BP16sBD8AAAAABZBSPw3PAT9erAQ/AAAAAAWQUj+JD0I/6UEpPwAAAAC8u6c/Dc8BP16sBD8AAAAABZBSPw3PAT9erAQ/AAAAAAWQUj8ogYU+Vhs6PwAAAADf01w/Dc8BP16sBD8AAAAABZBSPw3PAT9erAQ/AAAAAAWQUj9yIj4/JuyVPgAAAACQTBs/AAAAAKuqqj4AAAAAEYanPgAAAACrqqo+AAAAABGGpz7MVYE+z5bUPgAAAABt8QQ/Dc8BP16sBD8AAAAABZBSPw3PAT9erAQ/AAAAAAWQUj/MVYE+z5bUPgAAAABt8QQ/zFWBPs+W1D4AAAAAbvEEP8xVgT7PltQ+AAAAAG7xBD8NzwE/XqwEPwAAAAAFkFI/", "encoding": "base64", "path": ["value", "Bezier_points", 0]}, {"data": "AAAAAKuqKj4AAAAASTssPquqKj6rqio+AAAAAIzZaT6rqio+AAAAAAAAAAALdEgxEOTTPkRf9D0AAAAAUlgqPrKcFD9EX/Q9AAAAAJc5bT4AAAA/AAAAAAAAAAC3nCaxVVVVPwAAAAAAAAAApGAmso5mND8m7BU+AAAAAMfxkj45EV8/JuwVPgAAAABqwsk+spwUP0Rf9D0AAAAAlzltPpZYHj/kDYg+AAAAAGyo9D6OZjQ/JuwVPgAAAADG8ZI+ORFfPybsFT4AAAAAasLJPjkRXz9oS6A+AAAAAAZoOT8AAIA/q6oqPgAAAABGFuo+xAdhPz+X/j4AAAAAR1SZP8QHYT9K9ik/AAAAAA6AvD8AAIA/AAAAPwAAAABxH6k/ORFfP2hLoD4AAAAABmg5P/0YQD/8N/Q+AAAAAEpvfD/EB2E/P5f+PgAAAABHVJk/xAdhP/WgVD8AAAAABPzgPxpdNj/1oFQ/AAAAAPuXxD9VVVU/AACAPwAAAABRYvQ/BocWP45zZD8AAAAA9a6yP7a41z6Oc2Q/AAAAACNUmT8AAAA/AACAPwAAAADcG68/q6oqPgAAgD8AAAAAIfF6P+kVmD6rDV0/AAAAAKmGgz8ogQU+qw1dPwAAAACRQGE/trjXPo5zZD8AAAAAI1SZP/UjxT45gUE/AAAAAKwyfz/pFZg+qw1dPwAAAACphoM/KIEFPqsNXT8AAAAAkUBhPyiBBT4AYzI/AAAAAIvJOD8AAAAAVVVVPwAAAABmHEA/OwCWPs+WVD4AAAAAL/iVPqA5vz44Y6c+AAAAAA+W9T4Q5NM+RF/0PQAAAABSWCo+zFUBPgl7Cj8AAAAAlIUZP8xVAT69oL8+AAAAAN0Q0D4AAAAAAAAAPwAAAAAD3vg+KIEFPgBjMj8AAAAAi8k4P3prgz5fMxI/AAAAAEjeND/MVQE+CXsKPwAAAACUhRk/AACAP1VVVT8AAAAAjI0CQMQHYT9K9ik/AAAAAA6AvD/EB2E/9aBUPwAAAAAE/OA/Gl02P/WgVD8AAAAA+5fEP3U5Ij+DFDk/AAAAAIAPoD8GhxY/jnNkPwAAAAD1rrI/S+8hPyT3Fj8AAAAAZHyDPzcZAj+9ySY/AAAAAH8kgj91OSI/gxQ5PwAAAACAD6A/v/gfP3Gizz4AAAAA7WRCP0vvIT8k9xY/AAAAAGR8gz/9GEA//Df0PgAAAABKb3w/NxkCP73JJj8AAAAAfySCP6GPxD7aYx8/AAAAAICfXj/1I8U+OYFBPwAAAACsMn8/5C4APy/EwT4AAAAAPzsdP7/4Hz9xos8+AAAAAO1kQj+WWB4/5A2IPgAAAABsqPQ+q6oqPquqKj4AAAAAjdlpPsxVAT69oL8+AAAAAN0Q0D47AJY+z5ZUPgAAAAAv+JU+oY/EPtpjHz8AAAAAgJ9eP/N5wj7F9+4+AAAAAOUUJT96a4M+XzMSPwAAAABI3jQ/oDm/Pjhjpz4AAAAAD5b1PvN5wj7F9+4+AAAAAOUUJT/kLgA/L8TBPgAAAAA/Ox0/", "encoding": "base64", "path": ["value", "Bezier_points", 1]}, {"data": "AAAAAAAAAAAAAAAASjwFM6uqqj4AAAAAAAAAAHp4LDMAAAAAAAAAAAAAAABKPAUzq6qqPgAAAAAAAAAAdRZ2MKuqKj8AAAAAAAAAAOGocjKrqqo+AAAAAAAAAAB1FnYwAACAPwAAAAAAAAAAi076MnIiPj8m7JU+AAAAAJBMGz8AAIA/AAAAAAAAAACLTvoyq6oqPwAAAAAAAAAAeHANMnIiPj8m7JU+AAAAAJBMGz+rqio/AAAAAAAAAAB4cA0yAACAPwAAAAAAAAAANyMvMwAAgD+rqqo+AAAAADSwYz8AAIA/AAAAAAAAAAA3Iy8zAACAP6uqqj4AAAAANbBjPwAAgD+rqio/AAAAANgn1z8AAIA/q6qqPgAAAAA1sGM/AACAP6uqqj4AAAAANLBjP4kPQj/pQSk/AAAAAL27pz8AAIA/q6qqPgAAAAA0sGM/AACAPwAAgD8AAAAACGQSQKuqKj8AAIA/AAAAAH/J0T8AAIA/AACAPwAAAAAIZBJAq6oqPwAAgD8AAAAAf8nRP6uqqj4AAIA/AAAAAKxRlj+rqio/AACAPwAAAAB/ydE/AAAAAAAAgD8AAAAApWpXPyiBhT5WGzo/AAAAAN/TXD8AAAAAAACAPwAAAAClalc/q6qqPgAAgD8AAAAArFGWPyiBhT5WGzo/AAAAAN/TXD+rqqo+AACAPwAAAACsUZY/AAAAAAAAgD8AAAAApGpXPwAAAACrqio/AAAAAHxNHj8AAAAAAACAPwAAAACkalc/q6qqPgAAAAAAAAAAFznMsnQd/T5EX3Q+AAAAAEBsxj6rqqo+AAAAAAAAAAAXOcyyAAAAAKuqKj8AAAAAfE0ePwAAAACrqqo+AAAAABCGpz4AAAAAq6oqPwAAAAB8TR4/AAAAAKuqKj8AAAAAfE0eP8xVgT7PltQ+AAAAAG7xBD8AAAAAq6oqPwAAAAB8TR4/AACAPwAAgD8AAAAAB2QSQIkPQj/pQSk/AAAAAL27pz8AAIA/AACAPwAAAAAHZBJAq6oqPwAAgD8AAAAAf8nRP2FjAj8c50g/AAAAALmHlj+rqio/AACAPwAAAAB/ydE/iQ9CP+lBKT8AAAAAvLunP2FjAj8c50g/AAAAALmHlj+JD0I/6UEpPwAAAAC8u6c/ciI+PybslT4AAAAAkEwbP4kPQj/pQSk/AAAAALy7pz9yIj4/JuyVPgAAAACQTBs/YWMCPxznSD8AAAAAuYeWPyiBhT5WGzo/AAAAAN/TXD9hYwI/HOdIPwAAAAC5h5Y/dB39PkRfdD4AAAAAP2zGPnIiPj8m7JU+AAAAAJBMGz90Hf0+RF90PgAAAAA/bMY+q6qqPgAAAAAAAAAAa8yuMcxVgT7PltQ+AAAAAG3xBD+rqqo+AAAAAAAAAABrzK4xKIGFPlYbOj8AAAAA39NcP8xVgT7PltQ+AAAAAG3xBD8ogYU+Vhs6PwAAAADf01w/dB39PkRfdD4AAAAAQGzGPg3PAT9erAQ/AAAAAAWQUj90Hf0+RF90PgAAAABAbMY+", "encoding": "base64", "path": ["value", "Bezier_points", 2]}, {"data": "q6qqPgAAAAAAAAAAAAAAAKuqKj8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAP6uqqj4AAAAAAAAAAAAAgD+rqio/AAAAAAAAAAAAAIA/AACAPwAAAAAAAAAAq6oqPwAAgD8AAAAAAAAAAKuqqj4AAIA/AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAKuqKj8AAAAAAAAAAAAAAACrqqo+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "encoding": "base64", "path": ["value", "edges", 0]}, {"data": "q6oqPgAAAAAAAAAAAAAAAAAAAD8AAAAAAAAAAAAAAABVVVU/AAAAAAAAAAAAAAAAAACAP6uqKj4AAAAAAAAAAAAAgD8AAAA/AAAAAAAAAAAAAIA/VVVVPwAAAAAAAAAAVVVVPwAAgD8AAAAAAAAAAAAAAD8AAIA/AAAAAAAAAACrqio+AACAPwAAAAAAAAAAAAAAAFVVVT8AAAAAAAAAAAAAAAAAAAA/AAAAAAAAAAAAAAAAq6oqPgAAAAAAAAAA", "encoding": "base64", "path": ["value", "edges", 1]}, {"data": "AAAAAAAAAAAAAAAAAAAAAKuqqj4AAAAAAAAAAAAAAACrqio/AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD+rqqo+AAAAAAAAAAAAAIA/q6oqPwAAAAAAAAAAAACAPwAAgD8AAAAAAAAAAKuqKj8AAIA/AAAAAAAAAACrqqo+AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAACrqio/AAAAAAAAAAAAAAAAq6qqPgAAAAAAAAAA", "encoding": "base64", "path": ["value", "edges", 2]}, {"data": "AAAAAKuqqj4AAAAAEYanPnQd/T5EX3Q+AAAAAEBsxj6rqio/AAAAAAAAAAAvwgMydB39PkRfdD4AAAAAP2zGPnIiPj8m7JU+AAAAAJBMGz+JD0I/6UEpPwAAAAC9u6c/ciI+PybslT4AAAAAkEwbP4kPQj/pQSk/AAAAALy7pz9hYwI/HOdIPwAAAAC5h5Y/q6qqPgAAgD8AAAAArFGWP2FjAj8c50g/AAAAALmHlj8ogYU+Vhs6PwAAAADf01w/zFWBPs+W1D4AAAAAbfEEP8xVgT7PltQ+AAAAAG7xBD8ogYU+Vhs6PwAAAADf01w/AACAP6uqKj8AAAAA1yfXP4kPQj/pQSk/AAAAALy7pz8NzwE/XqwEPwAAAAAFkFI/Dc8BP16sBD8AAAAABZBSPw3PAT9erAQ/AAAAAAWQUj8NzwE/XqwEPwAAAAAFkFI/AAAAAKuqqj4AAAAAEYanPg3PAT9erAQ/AAAAAAWQUj/MVYE+z5bUPgAAAABu8QQ/", "encoding": "base64", "path": ["value", "Bezier_trig_points", 0]}, {"data": "AAAAAKuqKj4AAAAASTssPhDk0z5EX/Q9AAAAAFJYKj5VVVU/AAAAAAAAAACkYCayspwUP0Rf9D0AAAAAlzltPjkRXz8m7BU+AAAAAGrCyT7EB2E/P5f+PgAAAABHVJk/ORFfP2hLoD4AAAAABmg5P8QHYT/1oFQ/AAAAAAT84D8GhxY/jnNkPwAAAAD1rrI/q6oqPgAAgD8AAAAAIfF6P7a41z6Oc2Q/AAAAACNUmT8ogQU+qw1dPwAAAACRQGE/OwCWPs+WVD4AAAAAL/iVPsxVAT4Jewo/AAAAAJSFGT8ogQU+AGMyPwAAAACLyTg/AACAP1VVVT8AAAAAjI0CQBpdNj/1oFQ/AAAAAPuXxD9L7yE/JPcWPwAAAABkfIM/v/gfP3Gizz4AAAAA7WRCPzcZAj+9ySY/AAAAAH8kgj/kLgA/L8TBPgAAAAA/Ox0/q6oqPquqKj4AAAAAjdlpPqGPxD7aYx8/AAAAAICfXj+gOb8+OGOnPgAAAAAPlvU+", "encoding": "base64", "path": ["value", "Bezier_trig_points", 1]}, {"data": "AAAAAAAAAAAAAAAASjwFM6uqqj4AAAAAAAAAAHUWdjAAAIA/AAAAAAAAAACLTvoyq6oqPwAAAAAAAAAAeHANMgAAgD8AAAAAAAAAADcjLzMAAIA/q6qqPgAAAAA1sGM/AACAP6uqqj4AAAAANLBjPwAAgD8AAIA/AAAAAAhkEkCrqio/AACAPwAAAAB/ydE/AAAAAAAAgD8AAAAApWpXP6uqqj4AAIA/AAAAAKxRlj8AAAAAAACAPwAAAACkalc/q6qqPgAAAAAAAAAAFznMsgAAAACrqio/AAAAAHxNHj8AAAAAq6oqPwAAAAB8TR4/AACAPwAAgD8AAAAAB2QSQKuqKj8AAIA/AAAAAH/J0T+JD0I/6UEpPwAAAAC8u6c/ciI+PybslT4AAAAAkEwbP2FjAj8c50g/AAAAALmHlj90Hf0+RF90PgAAAAA/bMY+q6qqPgAAAAAAAAAAa8yuMSiBhT5WGzo/AAAAAN/TXD90Hf0+RF90PgAAAABAbMY+", "encoding": "base64", "path": ["value", "Bezier_trig_points", 2]}, {"data": "q6oqPquqKj4AAAAAjNlpPrKcFD9EX/Q9AAAAAJc5bT6OZjQ/JuwVPgAAAADH8ZI+llgeP+QNiD4AAAAAbKj0PjkRXz9oS6A+AAAAAAZoOT/EB2E/SvYpPwAAAAAOgLw//RhAP/w39D4AAAAASm98PxpdNj/1oFQ/AAAAAPuXxD+2uNc+jnNkPwAAAAAjVJk/6RWYPqsNXT8AAAAAqYaDP/UjxT45gUE/AAAAAKwyfz8ogQU+AGMyPwAAAACLyTg/oDm/Pjhjpz4AAAAAD5b1PsxVAT69oL8+AAAAAN0Q0D56a4M+XzMSPwAAAABI3jQ/xAdhP0r2KT8AAAAADoC8P3U5Ij+DFDk/AAAAAIAPoD83GQI/vckmPwAAAAB/JII/S+8hPyT3Fj8AAAAAZHyDP6GPxD7aYx8/AAAAAICfXj+/+B8/caLPPgAAAADtZEI/zFUBPr2gvz4AAAAA3RDQPvN5wj7F9+4+AAAAAOUUJT/zecI+xffuPgAAAADlFCU/", "encoding": "base64", "path": ["value", "Bezier_trig_points", 3]}, {"data": "q6oqPgAAAAAAAAAAC3RIMQAAAD8AAAAAAAAAALecJrE5EV8/JuwVPgAAAABqwsk+jmY0PybsFT4AAAAAxvGSPgAAgD+rqio+AAAAAEYW6j4AAIA/AAAAPwAAAABxH6k/xAdhPz+X/j4AAAAAR1SZP1VVVT8AAIA/AAAAAFFi9D8AAAA/AACAPwAAAADcG68/KIEFPqsNXT8AAAAAkUBhP+kVmD6rDV0/AAAAAKmGgz8AAAAAVVVVPwAAAABmHEA/EOTTPkRf9D0AAAAAUlgqPgAAAAAAAAA/AAAAAAPe+D7MVQE+CXsKPwAAAACUhRk/xAdhP/WgVD8AAAAABPzgPwaHFj+Oc2Q/AAAAAPWusj91OSI/gxQ5PwAAAACAD6A//RhAP/w39D4AAAAASm98P/UjxT45gUE/AAAAAKwyfz+WWB4/5A2IPgAAAABsqPQ+OwCWPs+WVD4AAAAAL/iVPnprgz5fMxI/AAAAAEjeND/kLgA/L8TBPgAAAAA/Ox0/", "encoding": "base64", "path": ["value", "Bezier_trig_points", 4]}, {"data": "q6qqPgAAAAAAAAAAengsM6uqKj8AAAAAAAAAAOGocjJyIj4/JuyVPgAAAACQTBs/ciI+PybslT4AAAAAkEwbPwAAgD+rqqo+AAAAADSwYz8AAIA/q6oqPwAAAADYJ9c/iQ9CP+lBKT8AAAAAvbunP6uqKj8AAIA/AAAAAH/J0T+rqqo+AACAPwAAAACsUZY/KIGFPlYbOj8AAAAA39NcPyiBhT5WGzo/AAAAAN/TXD8AAAAAq6oqPwAAAAB8TR4/dB39PkRfdD4AAAAAQGzGPgAAAACrqqo+AAAAABCGpz7MVYE+z5bUPgAAAABu8QQ/iQ9CP+lBKT8AAAAAvbunP2FjAj8c50g/AAAAALmHlj9hYwI/HOdIPwAAAAC5h5Y/iQ9CP+lBKT8AAAAAvLunPyiBhT5WGzo/AAAAAN/TXD9yIj4/JuyVPgAAAACQTBs/zFWBPs+W1D4AAAAAbfEEP8xVgT7PltQ+AAAAAG3xBD8NzwE/XqwEPwAAAAAFkFI/", "encoding": "base64", "path": ["value", "Bezier_trig_points", 5]}]}}, "version_major": 2, "version_minor": 0}
+</script>
+
 
 
           </div>
@@ -307,10 +496,21 @@ Then we can solve the reduced problem: Find <span class="math notranslate nohigh
 </li>
 </ul>
 </li>
+<li><a class="reference internal" href="#introduction-to-trefftz-dg">Introduction to Trefftz-DG</a><ul>
+<li><a class="reference internal" href="#harmonic-polynomials">Harmonic polynomials</a></li>
+<li><a class="reference internal" href="#numerical-treatment">Numerical treatment</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#documentation">Documentation</a><ul>
 <li><a class="reference internal" href="#trefftz-spaces">Trefftz spaces</a></li>
 <li><a class="reference internal" href="#embedded-trefftz-method">Embedded Trefftz method</a></li>
 <li><a class="reference internal" href="#trefftz-tent-pitching">Trefftz + tent-pitching</a></li>
+<li><a class="reference internal" href="#how-to-get-started">How to get started?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contributing-to-ngstrefftz">Contributing to <code class="docutils literal notranslate"><span class="pre">NGSTrefftz</span></code></a><ul>
+<li><a class="reference internal" href="#id3">Bug reports</a></li>
+<li><a class="reference internal" href="#pull-requests">Pull requests</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#ngstrefftz-notebooks">NGSTrefftz Notebooks</a></li>

@@ -6,13 +6,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
-    <title>Laplace problem &#8212; NGSTrefftz v0.0.4 documentation</title>
+    <title>Laplace &#8212; NGSTrefftz 0.0.6 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/thebelab.css" />
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
+    <script src="../_static/thebelab-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
@@ -301,7 +306,18 @@ div.rendered_html tbody tr:hover {
     div.p-Widget div div div div.dg ul li div.dg {
         margin-bottom: 0px;
     }
-</style><div class="nbinput docutils container">
+</style><section id="Laplace">
+<h1>Laplace<a class="headerlink" href="#Laplace" title="Permalink to this headline">¶</a></h1>
+<p>We are looking to solve</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align*} \begin{split}
+    \begin{cases}
+    -\Delta u = 0 &amp;\text{ in } \Omega, \\
+    u=g &amp;\text{ on } \partial \Omega,
+    \end{cases}
+\end{split} \end{align*}\end{split}\]</div>
+<p>using a Trefftz-DG formulation</p>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
@@ -316,20 +332,9 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-importing NGSolve-6.2.2105-313-g71759f3a5
+importing NGSolve-6.2.2201
 </pre></div></div>
 </div>
-<section id="Laplace-problem">
-<h1>Laplace problem<a class="headerlink" href="#Laplace-problem" title="Permalink to this headline">¶</a></h1>
-<p>We are looking to solve</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{align*} \begin{split}
-    \begin{cases}
-    -\Delta u = 0 &amp;\text{ in } \Omega, \\
-    u=g &amp;\text{ on } \partial \Omega,
-    \end{cases}
-\end{split} \end{align*}\end{split}\]</div>
-<p>using a Trefftz-DG formulation</p>
 <section id="Constructing-a-Trefftz-space">
 <h2>Constructing a Trefftz space<a class="headerlink" href="#Constructing-a-Trefftz-space" title="Permalink to this headline">¶</a></h2>
 <p>A Trefftz space for the Laplace problem is given by the harmonic functions that locally fulfil</p>
@@ -342,18 +347,18 @@ f\in\mathbb{P}^p(K) \mid \Delta f = 0
 \end{split} \end{align*}\]</div>
 <p>We can construct it in NGSolve like so:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mesh</span> <span class="o">=</span> <span class="n">Mesh</span><span class="p">(</span><span class="n">unit_square</span><span class="o">.</span><span class="n">GenerateMesh</span><span class="p">(</span><span class="n">maxh</span><span class="o">=</span><span class="mf">.3</span><span class="p">))</span>
-<span class="n">fes</span> <span class="o">=</span> <span class="n">trefftzfespace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="n">eq</span><span class="o">=</span><span class="s2">&quot;laplace&quot;</span><span class="p">)</span>
+<span class="n">fes</span> <span class="o">=</span> <span class="n">trefftzfespace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span><span class="n">eq</span><span class="o">=</span><span class="s2">&quot;laplace&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <p>Using the eq key word one needs to tell the Trefftz space the operator for which to construct Trefftz functions.</p>
 <p>To get an overview on the implemented Trefftz functions see</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>trefftzfespace<span class="o">?</span>
@@ -362,7 +367,7 @@ f\in\mathbb{P}^p(K) \mid \Delta f = 0
 </div>
 <p>We will test against an exact solution given by</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">exact</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">sin</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
@@ -389,7 +394,7 @@ f\in\mathbb{P}^p(K) \mid \Delta f = 0
     \end{split}
 \end{align}\end{split}\]</div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mesh</span> <span class="o">=</span> <span class="n">fes</span><span class="o">.</span><span class="n">mesh</span>
@@ -423,7 +428,7 @@ f\in\mathbb{P}^p(K) \mid \Delta f = 0
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gfu</span> <span class="o">=</span> <span class="n">GridFunction</span><span class="p">(</span><span class="n">fes</span><span class="p">)</span>
@@ -439,7 +444,31 @@ f\in\mathbb{P}^p(K) \mid \Delta f = 0
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-trefftz 0.0007167446908893972
+trefftz 0.9144062859657578
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ngsolve.webgui</span> <span class="kn">import</span> <span class="n">Draw</span>
+<span class="n">Draw</span><span class="p">(</span><span class="n">gfu</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "157966cc51fe417b80d16f543ba4fa70", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+BaseWebGuiScene
 </pre></div></div>
 </div>
 </section>
